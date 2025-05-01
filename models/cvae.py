@@ -13,16 +13,19 @@ class CVAEEncoder(nn.Module):
     def __init__(self, latent_dim: int, input_dim: int, input_channels: int):
         super(CVAEEncoder, self).__init__()
 
-        ks = input_dim ** 0.5
+        ks = (input_dim / input_channels) ** 0.5
+
+        ks_s = [4, 2]
+        strides = [2, 1]
 
         # (Input dim + padding - kernel dim) / stride + 1
-        for _ in range(0, 2):
-          ks = int(np.floor((ks + 2 - 4) / 2) + 1)
+        for i in range(0, 2):
+          ks = int(np.floor((ks + 2 - ks_s[i]) / strides[i]) + 1)
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels=input_channels, kernel_size=(4, 4), stride=2, padding=1, out_channels=16),
+            nn.Conv2d(in_channels=input_channels, kernel_size=ks_s[0], stride=strides[0], padding=1, out_channels=16),
             nn.ReLU(),
-            nn.Conv2d(in_channels=16, kernel_size=(4, 4), stride=2, padding=1, out_channels=32),
+            nn.Conv2d(in_channels=16, kernel_size=ks_s[1], stride=strides[1], padding=1, out_channels=32),
             nn.ReLU(),
             nn.Flatten()
         )
@@ -43,19 +46,22 @@ class CVAEDecoder(nn.Module):
     def __init__(self, latent_dim: int, input_dim: int, output_channels: int):
         super(CVAEDecoder, self).__init__()
 
-        ks = input_dim ** 0.5
+        ks = (input_dim / output_channels) ** 0.5
         
+        ks_s = [4, 2]
+        strides = [2, 1]
+
         # (Input dim + padding - kernel dim) / stride + 1
-        for _ in range(0, 2):
-          ks = int(np.floor((ks + 2 - 4) / 2) + 1)
+        for i in range(0, 2):
+          ks = int(np.floor((ks + 2 - ks_s[i]) / strides[i]) + 1)
 
         self.decoder = nn.Sequential(
             nn.Linear(in_features=latent_dim, out_features=32 * ks ** 2),
             nn.ReLU(),
             nn.Unflatten(dim=1, unflattened_size=(32, ks, ks)),
-            nn.ConvTranspose2d(in_channels=32, kernel_size=(4, 4), stride=2, padding=1, out_channels=16),
+            nn.ConvTranspose2d(in_channels=32, kernel_size=ks_s[1], stride=strides[1], padding=1, out_channels=16),
             nn.ReLU(),
-            nn.ConvTranspose2d(in_channels=16, kernel_size=(4, 4), stride=2, padding=1, out_channels=output_channels),
+            nn.ConvTranspose2d(in_channels=16, kernel_size=ks_s[0], stride=strides[0], padding=1, out_channels=output_channels),
             nn.Sigmoid()
         )
     
@@ -71,10 +77,13 @@ class CVAE(nn.Module):
     and transpose convolutions + linear for the decoder
     """
     
-    def __init__(self, device, latent_dim: int, input_dim: int, input_channels: int = 3):
+    def __init__(self, **kwargs):
         super(CVAE, self).__init__()
-        self.latent_dim = latent_dim
-        self.device = device
+        self.device = kwargs.get("device", torch.device("cpu"))
+
+        latent_dim = kwargs.get("latent_dim", 512)
+        input_dim = kwargs.get("input_dim", 32 * 32 * 3)
+        input_channels = kwargs.get("input_channels", 3)
 
         self.encoder = CVAEEncoder(latent_dim=latent_dim, input_dim=input_dim, input_channels=input_channels)
         self.decoder = CVAEDecoder(latent_dim=latent_dim, input_dim=input_dim, output_channels=input_channels)
@@ -100,7 +109,7 @@ class CVAE(nn.Module):
         return x_recon
     
     @staticmethod
-    def vae_loss(output, x):
+    def vae_loss(output, x, args):
         """
         KL-Divergence loss with BCE
 

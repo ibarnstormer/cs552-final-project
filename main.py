@@ -29,27 +29,73 @@ from eval import *
 abs_path = os.path.dirname(os.path.abspath(__file__))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 seed = 42
-latent_dim = 16
+latent_dim = 512
 
 # Model name, Model Weights Name, Model Class
 models = [
     ("Vanilla VAE", "vae", vae.VAE),
     ("Convolutional VAE", "cvae", cvae.CVAE),
-    ("VTAE", "vtae", vtae.VTAE),
+    #("VTAE", "vtae", vtae.VTAE),
     ("VQ-VAE", "vq-vae", vq_vae.VQVAE),
-    ("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
-    ("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
+    #("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
+    #("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
 ]
+
+model_cstr_args = {
+    "Vanilla VAE": {
+        "latent_dim": latent_dim,
+        "input_dim": 32 * 32 * 3,
+        "hidden_dim": 1024,
+        "loss_fn": vae.VAE.vae_loss
+    },
+    "Convolutional VAE": {
+        "device": device,
+        "latent_dim": latent_dim,
+        "input_dim": 32 * 32 * 3,
+        "input_channels": 3,
+        "loss_fn": cvae.CVAE.vae_loss
+    },
+    "VTAE": {
+        "input_shape": (3, 32, 32),
+        "latent_dim": latent_dim,
+        "outputdensity": "gaussian",
+        "ST_type": "affine",
+        "loss_fn": None
+    },
+    "VQ-VAE": {
+        "in_channels": 3,
+        "num_hiddens": 128,
+        "num_downsampling_layers": 2,
+        "num_residual_layers": 2,
+        "num_residual_hiddens": 32,
+        "embedding_dim": 64,
+        "num_embeddings": latent_dim,
+        "use_ema": True,
+        "decay": 0.99,
+        "epsilon": 1e-5,
+        "loss_fn": vq_vae.VQVAE.vqvae_loss
+    },
+    "VQ-VTAE": {
+        "latent_dim": latent_dim,
+        "input_dim": 32 * 32 * 3,
+        "input_channels": 3,
+        "patch_size": 4,
+        "embed_dim": 768,
+        "num_embed": 10,
+        "attn_heads": 12,
+        "loss_fn": None
+    }
+}
 
 """ ------ Argparser Arguments ------ """
 
 argParser = argparse.ArgumentParser()
 
-argParser.add_argument("-e", "--epochs", type=int, default=50, help="Number of epochs")
+argParser.add_argument("-e", "--epochs", type=int, default=10, help="Number of epochs")
 argParser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning Rate")
-argParser.add_argument("-b", "--batch_size", type=int, default=128, help="Batch Size")
+argParser.add_argument("-b", "--batch_size", type=int, default=128, help="Batch Size") # 128
 argParser.add_argument("-o", "--output", type=str, default=os.path.join(abs_path, "trained_model_weights"), help="Output directory for model weights")
-argParser.add_argument("-pm", "--use_pretrained_models", type=bool, default=False, help="Flag for using pre-trained models (skip training for any model that already has weights)")
+argParser.add_argument("-pm", "--use_pretrained_models", type=bool, default=True, help="Flag for using pre-trained models (skip training for any model that already has weights)")
 
 args = argParser.parse_args()
 
@@ -103,7 +149,7 @@ def main():
     for model_name, model_weights_name, model_cstr in models:
         # Train model / load model weights
 
-        model = model_cstr() # TODO: finalize constructor args
+        model = model_cstr(**model_cstr_args[model_name])
         model.to(device)
 
         pretrained_available = False
@@ -117,10 +163,13 @@ def main():
                 print(f"[Error]: Could not load weights for model: {model_name}")
 
         if not pretrained_available:
-            model_weights = train_model(model, train_dl, model_name, None, epochs, lr) # TODO: figure out loss_fn format
+            model_weights = train_model(model, train_dl, model_name, model_cstr_args[model_name]["loss_fn"], epochs, lr, device, model_cstr_args[model_name])
+            torch.save(model_weights, os.path.join(output_dir, f"{model_weights_name}.pt"))
             model.load_state_dict(model_weights)
         
-        # TODO: Model valuation Step
+        # TODO: Model Evaluation Step
+        print(f"[Info]: Evaluating {model_name}")
+        visualize_reconstructions(model, test_dl, device)
 
         pass
 
