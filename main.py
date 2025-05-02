@@ -6,23 +6,22 @@ Main entrypoint script for project
 """
 
 import argparse
-import numpy as np
-import matplotlib.pyplot as plt
 import os
-import scipy.stats as stats
 import random
-import torch.nn as nn
-import torch.cuda
-import torchvision
 
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats as stats
+import torch.cuda
+import torch.nn as nn
+import torchvision
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from tqdm.auto import tqdm
 
-from models import vae, cvae, vtae, vq_vae, vq_vae_2, vq_vtae  
-from train import *
 from eval import *
+from models import cvae, vae, vq_vae, vq_vae_2, vq_vtae, vtae
+from train import *
 
 """ ------ Immutable Globals ------ """
 
@@ -35,10 +34,10 @@ latent_dim = 512
 models = [
     ("Vanilla VAE", "vae", vae.VAE),
     ("Convolutional VAE", "cvae", cvae.CVAE),
-    #("VTAE", "vtae", vtae.VTAE),
+    # ("VTAE", "vtae", vtae.VTAE), # This cause gradient explosion
     ("VQ-VAE", "vq-vae", vq_vae.VQVAE),
-    #("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
-    #("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
+    ("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
+    # ("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
 ]
 
 model_cstr_args = {
@@ -46,21 +45,21 @@ model_cstr_args = {
         "latent_dim": latent_dim,
         "input_dim": 32 * 32 * 3,
         "hidden_dim": 1024,
-        "loss_fn": vae.VAE.vae_loss
+        "loss_fn": vae.VAE.vae_loss,
     },
     "Convolutional VAE": {
         "device": device,
         "latent_dim": latent_dim,
         "input_dim": 32 * 32 * 3,
         "input_channels": 3,
-        "loss_fn": cvae.CVAE.vae_loss
+        "loss_fn": cvae.CVAE.vae_loss,
     },
     "VTAE": {
         "input_shape": (3, 32, 32),
         "latent_dim": latent_dim,
         "outputdensity": "gaussian",
         "ST_type": "affine",
-        "loss_fn": None
+        "loss_fn": vtae.VTAE.vtae_loss,
     },
     "VQ-VAE": {
         "in_channels": 3,
@@ -73,7 +72,17 @@ model_cstr_args = {
         "use_ema": True,
         "decay": 0.99,
         "epsilon": 1e-5,
-        "loss_fn": vq_vae.VQVAE.vqvae_loss
+        "loss_fn": vq_vae.VQVAE.vqvae_loss,
+    },
+    "VQ-VAE-2": {
+        "in_channel": 3,
+        "channel": 128,  # hidden channels
+        "n_res_block": 2,
+        "n_res_channel": 32,
+        "embed_dim": latent_dim,
+        "n_embed": 512,  # Number of embeddings
+        "decay": 0.8,
+        "loss_fn": vq_vae_2.VQVAE2.vq_vae2_loss,
     },
     "VQ-VTAE": {
         "latent_dim": latent_dim,
@@ -83,8 +92,8 @@ model_cstr_args = {
         "embed_dim": 768,
         "num_embed": 10,
         "attn_heads": 12,
-        "loss_fn": None
-    }
+        "loss_fn": None,
+    },
 }
 
 """ ------ Argparser Arguments ------ """
@@ -92,10 +101,26 @@ model_cstr_args = {
 argParser = argparse.ArgumentParser()
 
 argParser.add_argument("-e", "--epochs", type=int, default=10, help="Number of epochs")
-argParser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning Rate")
-argParser.add_argument("-b", "--batch_size", type=int, default=128, help="Batch Size") # 128
-argParser.add_argument("-o", "--output", type=str, default=os.path.join(abs_path, "trained_model_weights"), help="Output directory for model weights")
-argParser.add_argument("-pm", "--use_pretrained_models", type=bool, default=True, help="Flag for using pre-trained models (skip training for any model that already has weights)")
+argParser.add_argument(
+    "-lr", "--learning_rate", type=float, default=0.001, help="Learning Rate"
+)
+argParser.add_argument(
+    "-b", "--batch_size", type=int, default=128, help="Batch Size"
+)  # 128
+argParser.add_argument(
+    "-o",
+    "--output",
+    type=str,
+    default=os.path.join(abs_path, "trained_model_weights"),
+    help="Output directory for model weights",
+)
+argParser.add_argument(
+    "-pm",
+    "--use_pretrained_models",
+    type=bool,
+    default=True,
+    help="Flag for using pre-trained models (skip training for any model that already has weights)",
+)
 
 args = argParser.parse_args()
 
@@ -109,14 +134,26 @@ use_pretrained = args.use_pretrained_models
 
 # CIFAR10 (3 x 32 x 32)
 
-train_ds = torchvision.datasets.CIFAR10(root=os.path.join(abs_path, "data"), download=True, transform=transforms.ToTensor())
-test_ds = torchvision.datasets.CIFAR10(root=os.path.join(abs_path, "data"), train=False, transform=transforms.ToTensor())
+transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ]
+)
+
+train_ds = torchvision.datasets.CIFAR10(
+    root=os.path.join(abs_path, "data"), download=True, transform=transform
+)
+test_ds = torchvision.datasets.CIFAR10(
+    root=os.path.join(abs_path, "data"), train=False, transform=transform
+)
 
 train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 test_dl = DataLoader(test_ds, batch_size=batch_size, shuffle=True)
 
 
 """ ------ Methods ------ """
+
 
 def setup():
     """
@@ -131,16 +168,14 @@ def setup():
     else:
         cuda_info = "Cuda modules not loaded."
 
-    print("[Info]: " + cuda_info + '\n')
+    print("[Info]: " + cuda_info + "\n")
 
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
 
-
 def main():
-
     # Setup Environment
     setup()
 
@@ -156,17 +191,33 @@ def main():
 
         if use_pretrained:
             try:
-                model_weights = torch.load(os.path.join(output_dir, f"{model_weights_name}.pt"), map_location=device, weights_only=True)
+                model_weights = torch.load(
+                    os.path.join(output_dir, f"{model_weights_name}.pt"),
+                    map_location=device,
+                    weights_only=True,
+                )
                 model.load_state_dict(model_weights)
                 pretrained_available = True
             except:
                 print(f"[Error]: Could not load weights for model: {model_name}")
 
         if not pretrained_available:
-            model_weights = train_model(model, train_dl, model_name, model_cstr_args[model_name]["loss_fn"], epochs, lr, device, model_cstr_args[model_name])
-            torch.save(model_weights, os.path.join(output_dir, f"{model_weights_name}.pt"))
+            model_weights = train_model(
+                model,
+                train_dl,
+                model_name,
+                model_cstr_args[model_name]["loss_fn"],
+                epochs,
+                lr,
+                device,
+                model_cstr_args[model_name],
+            )
+            os.makedirs(output_dir, exist_ok=True)  # Create output directory
+            torch.save(
+                model_weights, os.path.join(output_dir, f"{model_weights_name}.pt")
+            )
             model.load_state_dict(model_weights)
-        
+
         # TODO: Model Evaluation Step
         print(f"[Info]: Evaluating {model_name}")
         visualize_reconstructions(model, test_dl, device)
