@@ -8,7 +8,6 @@ Contains methods pertaining to model evaluation and results visualization
 import matplotlib.pyplot as plt
 import torch
 
-
 # TODO: add more methods
 
 def visualize_reconstructions(model, test_loader, device):
@@ -26,7 +25,11 @@ def visualize_reconstructions(model, test_loader, device):
         data = data.to(device)
         
         # Pass data through the model:
-        recon_batch, _, _ = model(data)
+        output = model(data)
+        if isinstance(output, tuple):
+            recon_batch = output[0]
+        else:
+            recon_batch = output
         
         # Reshape both original and reconstructed data back to images
         data = data.view(-1, 3, 32, 32).cpu()
