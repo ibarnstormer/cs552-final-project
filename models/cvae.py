@@ -113,7 +113,6 @@ class CVAE(nn.Module):
         """
         KL-Divergence loss with BCE
 
-        output is a tuple of the following: (reconstructed x, mu/mean, log variance)
         """
         b = 0.25
         x_recon, mu, logvar = output

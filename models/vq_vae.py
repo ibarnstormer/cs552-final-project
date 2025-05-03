@@ -1,7 +1,7 @@
 """
 Baseline VQ-VAE
 
-Implementation by Gemini/Google
+Parts of the implementation were made using Gemini/Google
 
 """
 

@@ -20,7 +20,7 @@ from torchvision import transforms
 from tqdm.auto import tqdm
 
 from eval import *
-from models import cvae, vae, vq_vae, vq_vae_2, vq_vtae, vtae
+from models import cvae, vae, vq_vae, vq_vae_2, vq_vtae, vtae, vq_vtae_2
 from train import *
 
 """ ------ Immutable Globals ------ """
@@ -37,7 +37,8 @@ models = [
     #("VTAE", "vtae", vtae.VTAE), # This cause gradient explosion
     ("VQ-VAE", "vq-vae", vq_vae.VQVAE),
     ("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
-    ("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
+    ("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE),
+    ("VQ-VTAE-2", "vq-vtae-2", vq_vtae_2.VQVTAE2)
 ]
 
 model_cstr_args = {
@@ -86,6 +87,16 @@ model_cstr_args = {
         "num_embeddings": latent_dim,
         "commitment_cost": 0.25,
         "loss_fn": vq_vtae.VQVTAE.vqvtae_loss
+    },
+    "VQ-VTAE-2": {
+        "in_channel": 3,
+        "channel": 128,  # hidden channels
+        "n_res_block": 2,
+        "n_res_channel": 32,
+        "embed_dim": latent_dim,
+        "n_embed": 512,  # Number of embeddings
+        "decay": 0.8,
+        "loss_fn": vq_vtae_2.VQVTAE2.vq_vtae2_loss,
     }
 }
 
