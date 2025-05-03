@@ -33,10 +33,10 @@ latent_dim = 512
 
 # Model name, Model Weights Name, Model Class
 models = [
-    #("Vanilla VAE", "vae", vae.VAE),
-    #("Convolutional VAE", "cvae", cvae.CVAE),
+    ("Vanilla VAE", "vae", vae.VAE),
+    ("Convolutional VAE", "cvae", cvae.CVAE),
     #("VTAE", "vtae", vtae.VTAE),
-    #("VQ-VAE", "vq-vae", vq_vae.VQVAE),
+    ("VQ-VAE", "vq-vae", vq_vae.VQVAE),
     #("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
     ("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
 ]
