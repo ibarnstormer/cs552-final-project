@@ -80,13 +80,13 @@ class CVAE(nn.Module):
     def __init__(self, **kwargs):
         super(CVAE, self).__init__()
         self.device = kwargs.get("device", torch.device("cpu"))
+        self.latent_dim = kwargs.get("latent_dim", 512)
 
-        latent_dim = kwargs.get("latent_dim", 512)
         input_dim = kwargs.get("input_dim", 32 * 32 * 3)
         input_channels = kwargs.get("input_channels", 3)
 
-        self.encoder = CVAEEncoder(latent_dim=latent_dim, input_dim=input_dim, input_channels=input_channels)
-        self.decoder = CVAEDecoder(latent_dim=latent_dim, input_dim=input_dim, output_channels=input_channels)
+        self.encoder = CVAEEncoder(latent_dim=self.latent_dim, input_dim=input_dim, input_channels=input_channels)
+        self.decoder = CVAEDecoder(latent_dim=self.latent_dim, input_dim=input_dim, output_channels=input_channels)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)

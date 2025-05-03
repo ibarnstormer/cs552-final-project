@@ -33,12 +33,12 @@ latent_dim = 512
 
 # Model name, Model Weights Name, Model Class
 models = [
-    ("Vanilla VAE", "vae", vae.VAE),
-    ("Convolutional VAE", "cvae", cvae.CVAE),
+    #("Vanilla VAE", "vae", vae.VAE),
+    #("Convolutional VAE", "cvae", cvae.CVAE),
     #("VTAE", "vtae", vtae.VTAE),
-    ("VQ-VAE", "vq-vae", vq_vae.VQVAE),
+    #("VQ-VAE", "vq-vae", vq_vae.VQVAE),
     #("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
-    #("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
+    ("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
 ]
 
 model_cstr_args = {
@@ -64,26 +64,19 @@ model_cstr_args = {
     },
     "VQ-VAE": {
         "in_channels": 3,
-        "num_hiddens": 128,
-        "num_downsampling_layers": 2,
-        "num_residual_layers": 2,
-        "num_residual_hiddens": 32,
+        "hidden_dim": 128,
         "embedding_dim": 64,
         "num_embeddings": latent_dim,
-        "use_ema": True,
-        "decay": 0.99,
-        "epsilon": 1e-5,
+        "commitment_cost": 0.25,
         "loss_fn": vq_vae.VQVAE.vqvae_loss
     },
     "VQ-VTAE": {
-        "latent_dim": latent_dim,
-        "input_dim": 32 * 32 * 3,
-        "input_channels": 3,
-        "patch_size": 4,
-        "embed_dim": 768,
-        "num_embed": 10,
-        "attn_heads": 12,
-        "loss_fn": None
+        "in_channels": 3,
+        "hidden_dim": 128,
+        "embedding_dim": 64,
+        "num_embeddings": latent_dim,
+        "commitment_cost": 0.25,
+        "loss_fn": vq_vtae.VQVTAE.vqvtae_loss
     }
 }
 
@@ -145,6 +138,7 @@ def main():
     setup()
 
     # Initialize, train, and evaluate models
+    test_img, _ = next(iter(test_dl))
 
     for model_name, model_weights_name, model_cstr in models:
         # Train model / load model weights
@@ -169,9 +163,7 @@ def main():
         
         # TODO: Model Evaluation Step
         print(f"[Info]: Evaluating {model_name}")
-        visualize_reconstructions(model, test_dl, device)
-
-        pass
+        visualize_reconstructions(model, test_img, device)
 
     pass
 
