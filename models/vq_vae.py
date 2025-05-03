@@ -118,7 +118,7 @@ class VQVAE(nn.Module):
 
         criterion = nn.MSELoss()
 
-        recon_loss = criterion(x_recon, x)
+        recon_loss = criterion(x_recon, x) # TODO: split
         loss = recon_loss + b * commit_loss
         
         return loss

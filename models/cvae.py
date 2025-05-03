@@ -118,6 +118,6 @@ class CVAE(nn.Module):
         b = 0.25
         x_recon, mu, logvar = output
 
-        loss = nn.functional.binary_cross_entropy(x_recon, x, reduction="sum")
+        loss = nn.functional.binary_cross_entropy(x_recon, x, reduction="sum") # TODO: split
         kl_divergence = -b * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return loss + kl_divergence

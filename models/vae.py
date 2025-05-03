@@ -53,6 +53,6 @@ class VAE(nn.Module):
     @staticmethod
     def vae_loss(output, x, args):
         recon_x, mu, logvar = output
-        BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
+        BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum') # TODO: split
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return BCE + KLD

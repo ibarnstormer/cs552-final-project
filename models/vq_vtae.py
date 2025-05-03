@@ -13,11 +13,11 @@ import torch.nn.functional as F
 class SqueezeExcitation(nn.Module):
     """
     Squeeze-and-Excitation: variant of channel attention
-    
+
     (Found to reconstruct color hues better than default Channel Attention from CBAM paper)
     """
 
-    def __init__(self, in_channels, reduction_ratio=16):
+    def __init__(self, in_channels: int, reduction_ratio: int = 16):
         super(SqueezeExcitation, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
@@ -195,7 +195,7 @@ class VQVTAE(nn.Module):
 
         criterion = nn.MSELoss()
 
-        recon_loss = criterion(x_recon, x)
+        recon_loss = criterion(x_recon, x) # TODO: split
         loss = recon_loss + b * commit_loss
         
         return loss
