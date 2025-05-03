@@ -33,10 +33,10 @@ latent_dim = 512
 
 # Model name, Model Weights Name, Model Class
 models = [
-    ("Vanilla VAE", "vae", vae.VAE),
-    ("Convolutional VAE", "cvae", cvae.CVAE),
+    #("Vanilla VAE", "vae", vae.VAE),
+    #("Convolutional VAE", "cvae", cvae.CVAE),
     #("VTAE", "vtae", vtae.VTAE),
-    ("VQ-VAE", "vq-vae", vq_vae.VQVAE),
+    #("VQ-VAE", "vq-vae", vq_vae.VQVAE),
     #("VQ-VAE-2", "vq-vae-2", vq_vae_2.VQVAE2),
     ("VQ-VTAE", "vq-vtae", vq_vtae.VQVTAE)
 ]
@@ -88,7 +88,7 @@ argParser.add_argument("-e", "--epochs", type=int, default=10, help="Number of e
 argParser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning Rate")
 argParser.add_argument("-b", "--batch_size", type=int, default=128, help="Batch Size") # 128
 argParser.add_argument("-o", "--output", type=str, default=os.path.join(abs_path, "trained_model_weights"), help="Output directory for model weights")
-argParser.add_argument("-pm", "--use_pretrained_models", type=bool, default=True, help="Flag for using pre-trained models (skip training for any model that already has weights)")
+argParser.add_argument("-pm", "--use_pretrained_models", type=bool, default=False, help="Flag for using pre-trained models (skip training for any model that already has weights)")
 
 args = argParser.parse_args()
 
