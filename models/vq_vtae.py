@@ -120,11 +120,12 @@ class VQVTAEEncoder(nn.Module):
         super(VQVTAEEncoder, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, hidden_dim, kernel_size=4, stride=2)
         self.conv2 = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=2, stride=1)
-        self.cbam = CBAM(hidden_dim)
+        self.cbam1 = CBAM(hidden_dim)
+        self.cbam2 = CBAM(hidden_dim)
 
     def forward(self, x):
-        x = self.cbam(F.relu(self.conv1(x)))
-        x = self.cbam(F.relu(self.conv2(x)))
+        x = self.cbam1(F.relu(self.conv1(x)))
+        x = self.cbam2(F.relu(self.conv2(x)))
         return x
 
 
@@ -138,7 +139,7 @@ class VQVTAEDecoder(nn.Module):
         self.conv_transpose1 = nn.ConvTranspose2d(hidden_dim, hidden_dim, kernel_size=2, stride=1)
         self.conv_transpose2 = nn.ConvTranspose2d(hidden_dim, out_channels, kernel_size=4, stride=2)
         self.cbam = CBAM(in_channels=hidden_dim, transpose=True)
-
+        
     def forward(self, x):
         x = self.cbam(F.relu(self.conv_transpose1(x)))
         x = self.conv_transpose2(x)

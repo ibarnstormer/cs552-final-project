@@ -11,8 +11,6 @@ import torch
 import torchvision
 from typing import List, Dict, Tuple, Optional, Union
 
-from models import vq_vae
-
 # TODO: add more methods
 
 def visualize_reconstructions(model, data, device):
@@ -28,7 +26,11 @@ def visualize_reconstructions(model, data, device):
         data = data.to(device)
         
         # Pass data through the model:
-        recon_batch, _, _ = model(data)
+        output = model(data)
+        if isinstance(output, tuple):
+            recon_batch = output[0]
+        else:
+            recon_batch = output
         
         # Reshape both original and reconstructed data back to images
         data = data.view(-1, 3, 32, 32).cpu()
