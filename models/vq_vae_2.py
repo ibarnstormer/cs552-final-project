@@ -50,6 +50,8 @@ class Quantize(nn.Module):
         _, embed_ind = (-dist).max(1)
         embed_onehot = F.one_hot(embed_ind, self.n_embed).type(flatten.dtype)
         embed_ind = embed_ind.view(*input.shape[:-1])
+        # unique_indices = torch.unique(embed_ind)
+        # print(f"Used indices: {len(unique_indices)}/{self.n_embed}")
         quantize = self.embed_code(embed_ind)
 
         if self.training:
@@ -167,25 +169,27 @@ class Decoder(nn.Module):
 class VQVAE2(nn.Module):
     def __init__(
         self,
-        in_channel=3,
-        channel=128,
-        n_res_block=2,
-        n_res_channel=32,
-        embed_dim=64,
-        n_embed=512,
-        decay=0.99,
+        **kwargs,
     ):
         super().__init__()
 
+        in_channel = kwargs.get("in_channel", 3)
+        channel = kwargs.get("channel", 128)
+        n_res_block = kwargs.get("n_res_block", 2)
+        n_res_channel = kwargs.get("n_res_channel", 32)
+        embed_dim = kwargs.get("embed_dim", 64)
+        n_embed = kwargs.get("n_embed", 512)
+        decay = kwargs.get("decay", 0.8)
+        
         self.enc_b = Encoder(in_channel, channel, n_res_block, n_res_channel, stride=4)
         self.enc_t = Encoder(channel, channel, n_res_block, n_res_channel, stride=2)
         self.quantize_conv_t = nn.Conv2d(channel, embed_dim, 1)
-        self.quantize_t = Quantize(embed_dim, n_embed)
+        self.quantize_t = Quantize(embed_dim, n_embed, decay=decay)
         self.dec_t = Decoder(
             embed_dim, embed_dim, channel, n_res_block, n_res_channel, stride=2
         )
         self.quantize_conv_b = nn.Conv2d(embed_dim + channel, embed_dim, 1)
-        self.quantize_b = Quantize(embed_dim, n_embed)
+        self.quantize_b = Quantize(embed_dim, n_embed, decay=decay)
         self.upsample_t = nn.ConvTranspose2d(
             embed_dim, embed_dim, 4, stride=2, padding=1
         )
@@ -227,6 +231,7 @@ class VQVAE2(nn.Module):
         upsample_t = self.upsample_t(quant_t)
         quant = torch.cat([upsample_t, quant_b], 1)
         dec = self.dec(quant)
+        dec = F.tanh(dec)
 
         return dec
 
@@ -239,6 +244,18 @@ class VQVAE2(nn.Module):
         dec = self.decode(quant_t, quant_b)
 
         return dec
+
+    @staticmethod
+    def vq_vae2_loss(output, x, args):
+        # Taken from https://github.com/rosinality/vq-vae-2-pytorch/blob/master/train_vqvae.py
+        out, latent_loss = output
+        criterion = nn.MSELoss()
+        latent_loss_weight = 0.25
+
+        recon_loss = criterion(out, x)
+        latent_loss = latent_loss.mean()
+        loss = recon_loss + latent_loss_weight * latent_loss
+        return loss
 
 
 if __name__ == "__main__":
