@@ -6,14 +6,24 @@ Contains methods pertaining to model training
 """
 
 import copy
+
 import numpy as np
 import torch
 import torch.nn as nn
-
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-def train_model(model: nn.Module, dl: DataLoader, name: str, loss_fn, epochs: int, lr: float, device, args):
+
+def train_model(
+    model: nn.Module,
+    dl: DataLoader,
+    name: str,
+    loss_fn,
+    epochs: int,
+    lr: float,
+    device,
+    args,
+):
     print(f"[Info]: Training {name}\n")
     model.train()
 
@@ -24,7 +34,6 @@ def train_model(model: nn.Module, dl: DataLoader, name: str, loss_fn, epochs: in
 
     for e in range(0, epochs):
         epoch_loss = 0
-
         for images, _ in tqdm(dl):
             images = images.to(device)
 
