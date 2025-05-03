@@ -140,6 +140,9 @@ def main():
     # Initialize, train, and evaluate models
     test_img, _ = next(iter(test_dl))
 
+    # Dictionary to store all models for comparison
+    trained_models = {}
+
     for model_name, model_weights_name, model_cstr in models:
         # Train model / load model weights
 
@@ -161,9 +164,24 @@ def main():
             torch.save(model_weights, os.path.join(output_dir, f"{model_weights_name}.pt"))
             model.load_state_dict(model_weights)
         
-        # TODO: Model Evaluation Step
+        # Individual model evaluation (original code)
         print(f"[Info]: Evaluating {model_name}")
         visualize_reconstructions(model, test_img, device)
+        
+        # Store model for comparison
+        trained_models[model_name] = model
+
+    # After all models are trained/loaded, perform comparisons
+    print("\n[Info]: Performing cross-model comparisons")
+    
+    # 1. Compare reconstructions from all models
+    print("[Info]: Comparing image reconstructions across models")
+    compare_model_reconstructions(
+        models_dict=trained_models,
+        test_data=test_img,
+        device=device,
+        num_samples=8
+    )
 
     pass
 
