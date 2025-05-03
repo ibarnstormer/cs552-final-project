@@ -40,11 +40,9 @@ def train_model(
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
-                if loss_fn is not None:
-                    output = model(images)
-                    loss = loss_fn(output, images, args)
-                else:
-                    output, loss, _ = model(images)
+                output = model(images)
+                loss = loss_fn(output, images, args)
+
                 loss.backward()
                 optimizer.step()
 

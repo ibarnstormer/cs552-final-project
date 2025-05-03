@@ -5,16 +5,16 @@ Contains methods pertaining to model evaluation and results visualization
 
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import torchvision
 
 # TODO: add more methods
 
-def visualize_reconstructions(model, test_loader, device):
+def visualize_reconstructions(model, data, device):
     model.eval()  # Set the model to evaluation mode
     with torch.no_grad():
-        # Get one batch of data from the test loader
-        data, _ = next(iter(test_loader))
         
         # Flattening was done before feeding data into the model,
         # so here we reshape it back into image format [batch, 3, 32, 32].
@@ -53,3 +53,14 @@ def visualize_reconstructions(model, test_loader, device):
             if i == 0:
                 ax.set_title("Reconstruction")
         plt.show()
+
+def visualize_tensor(t: torch.Tensor, plot_title: str = "", nrow: int = None):
+
+    grid = torchvision.utils.make_grid(t, nrow=int(np.ceil(t.shape[0] ** 0.5)) if nrow == None else nrow)
+
+    plt.imshow(grid.permute(1, 2, 0))
+    if plot_title != "":
+        plt.title(plot_title)
+    plt.show()
+
+
