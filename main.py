@@ -177,6 +177,13 @@ def main():
 
     # Dictionary to store all models for comparison
     trained_models = {}
+    
+    # Dictionary to store all model loss histories
+    all_model_histories = {}
+    
+    # Load any existing loss histories
+    model_names = [model_name for model_name, _, _ in models]
+    all_model_histories = load_or_create_model_histories(model_names, save_dir=os.path.join(output_dir, "loss_plots"))
 
     for model_name, model_weights_name, model_cstr in models:
         # Train model / load model weights
@@ -208,6 +215,8 @@ def main():
                 lr,
                 device,
                 model_cstr_args[model_name],
+                save_dir=os.path.join(output_dir, "loss_plots"),
+                all_model_histories=all_model_histories
             )
             os.makedirs(output_dir, exist_ok=True)  # Create output directory
             torch.save(
@@ -215,7 +224,7 @@ def main():
             )
             model.load_state_dict(model_weights)
 
-        # TODO: Model Evaluation Step
+        # Model Evaluation
         print(f"[Info]: Evaluating {model_name}")
         visualize_reconstructions(model, test_img, device)
         
@@ -225,7 +234,14 @@ def main():
     # After all models are trained/loaded, perform comparisons
     print("\n[Info]: Performing cross-model comparisons")
     
-    # 1. Compare reconstructions from all models
+    # Generate comparative loss plots
+    print("[Info]: Generating comparative loss plots")
+    compare_model_losses(
+        all_model_histories, 
+        save_dir=os.path.join(output_dir, "loss_plots")
+    )
+    
+    # Compare reconstructions from all models
     print("[Info]: Comparing image reconstructions across models")
     compare_model_reconstructions(
         models_dict=trained_models,
