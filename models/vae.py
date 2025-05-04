@@ -51,8 +51,23 @@ class VAE(nn.Module):
         return x_recon, mu, logvar
     
     @staticmethod
-    def vae_loss(output, x, args):
+    def vae_loss(output, x, args, get_components=False):
         recon_x, mu, logvar = output
-        BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum') # TODO: split
+        
+        # Calculate reconstruction loss (Binary Cross Entropy)
+        BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
+        
+        # Calculate KL Divergence
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return BCE + KLD
+        
+        # Total loss
+        total_loss = BCE + KLD
+        
+        if get_components:
+            # Return total loss and components dictionary
+            return total_loss, {
+                'reconstruction_loss': BCE.item(),
+                'kl_divergence': KLD.item()
+            }
+        else:
+            return total_loss
