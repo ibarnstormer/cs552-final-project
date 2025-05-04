@@ -11,6 +11,8 @@ import torch
 import torchvision
 from typing import List, Dict, Tuple, Optional, Union
 
+from models import vq_vae
+
 # TODO: add more methods
 
 def visualize_reconstructions(model, data, device):

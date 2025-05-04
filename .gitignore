@@ -1,6 +1,7 @@
 .venv
 
 __pycache__/
-
+loss_plots/
 data/
 trained_model_weights/
+trained_model_weights2/
