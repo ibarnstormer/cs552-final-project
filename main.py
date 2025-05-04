@@ -14,7 +14,7 @@ import scipy.stats as stats
 import torch.cuda
 import torch.nn as nn
 import torchvision
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import transforms
 from tqdm.auto import tqdm
 
@@ -78,8 +78,8 @@ model_cstr_args = {
         "channel": 128,  # hidden channels
         "n_res_block": 2,
         "n_res_channel": 32,
-        "embed_dim": latent_dim,
-        "n_embed": 512,  # Number of embeddings
+        "embed_dim": 64,
+        "n_embed": latent_dim,  # Number of embeddings
         "decay": 0.8,
         "loss_fn": vq_vae_2.VQVAE2.vq_vae2_loss,
         "latent_viz_fn": vq_vae_2.VQVAE2.encoding_indices
@@ -98,8 +98,8 @@ model_cstr_args = {
         "channel": 128,  # hidden channels
         "n_res_block": 2,
         "n_res_channel": 32,
-        "embed_dim": latent_dim,
-        "n_embed": 512,  # Number of embeddings
+        "embed_dim": 64,
+        "n_embed": latent_dim,  # Number of embeddings
         "decay": 0.8,
         "loss_fn": vq_vtae_2.VQVTAE2.vq_vtae2_loss,
         "latent_viz_fn": vq_vtae_2.VQVTAE2.encoding_indices
@@ -237,7 +237,9 @@ def main():
         visualize_reconstructions(model, test_img, device)
 
         # Latent space visualization
-        visualize_latent_space(model, model_cstr_args[model_name]["latent_viz_fn"], test_dl, device)
+        sub_dl = DataLoader(Subset(test_ds, torch.randperm(len(test_ds))[:5000]), batch_size=1, shuffle=True)
+
+        visualize_latent_space(model, model_name, model_cstr_args[model_name]["latent_viz_fn"], sub_dl, device)
         
         # Store model for comparison
         trained_models[model_name] = model

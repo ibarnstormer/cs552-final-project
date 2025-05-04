@@ -12,6 +12,7 @@ import torchvision
 from sklearn.manifold import TSNE
 from typing import List, Dict, Tuple, Optional, Union
 from models import vq_vae
+from tqdm.auto import tqdm
 
 def visualize_reconstructions(model, data, device):
     model.eval()  # Set the model to evaluation mode
@@ -146,16 +147,17 @@ def compare_model_reconstructions(models_dict: Dict[str, torch.nn.Module],
     plt.show()
 
 
-def visualize_latent_space(model, latent_space_fn, test_loader, device):
+def visualize_latent_space(model, model_name: str, latent_space_fn, test_loader, device):
+    print(f"[Info]: Visualizing latent space for {model_name}:")
 
     model.eval()
     latent_vectors = []
     labels = []
     
     with torch.no_grad():
-        for data, target in test_loader:
-            data = data.view(data.size(0), -1).to(device)
-            output = model.latent_space_fn(data)
+        for data, target in tqdm(test_loader):
+            data = data.to(device)
+            output = latent_space_fn(model, data)
             if isinstance(output, tuple):
                 latent_vectors.append(output[0].cpu().numpy())
                 labels.append(target.numpy())
@@ -172,5 +174,5 @@ def visualize_latent_space(model, latent_space_fn, test_loader, device):
     plt.figure(figsize=(8, 6))
     scatter = plt.scatter(latent_2d[:, 0], latent_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
     plt.colorbar(scatter)
-    plt.title("Latent Space Visualization using t-SNE")
+    plt.title(f"Latent Space Visualization for {model_name} using t-SNE")
     plt.show()

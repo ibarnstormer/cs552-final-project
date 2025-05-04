@@ -210,7 +210,7 @@ class VQVAE2(nn.Module):
 
     def encoding_indices(self, input):
         _, _, _, id_t, id_b = self.encode(input)
-        return id_t, id_b
+        return id_b.view(id_b.shape[0], -1), id_t.view(id_t.shape[0], -1)
 
     def encode(self, input):
         enc_b = self.enc_b(input)
