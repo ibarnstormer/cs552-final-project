@@ -219,6 +219,10 @@ class VQVTAE2(nn.Module):
         dec = self.decode(quant_t, quant_b)
 
         return dec, diff
+    
+    def encoding_indices(self, input):
+        _, _, _, id_t, id_b = self.encode(input)
+        return id_t, id_b
 
     def encode(self, input):
         enc_b = self.enc_b(input)

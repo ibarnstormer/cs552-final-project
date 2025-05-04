@@ -5,13 +5,13 @@ Contains methods pertaining to model evaluation and results visualization
 
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torchvision
+from sklearn.manifold import TSNE
 from typing import List, Dict, Tuple, Optional, Union
-
-# TODO: add more methods
+from models import vq_vae
 
 def visualize_reconstructions(model, data, device):
     model.eval()  # Set the model to evaluation mode
@@ -55,6 +55,7 @@ def visualize_reconstructions(model, data, device):
                 ax.set_title("Reconstruction")
         plt.show()
 
+
 def visualize_tensor(t: torch.Tensor, plot_title: str = "", nrow: int = None):
 
     grid = torchvision.utils.make_grid(t, nrow=int(np.ceil(t.shape[0] ** 0.5)) if nrow == None else nrow)
@@ -63,7 +64,6 @@ def visualize_tensor(t: torch.Tensor, plot_title: str = "", nrow: int = None):
     if plot_title != "":
         plt.title(plot_title)
     plt.show()
-
 
 
 def compare_model_reconstructions(models_dict: Dict[str, torch.nn.Module], 
@@ -143,4 +143,34 @@ def compare_model_reconstructions(models_dict: Dict[str, torch.nn.Module],
                 ax.set_title(model_name)
     
     plt.tight_layout()
+    plt.show()
+
+
+def visualize_latent_space(model, latent_space_fn, test_loader, device):
+
+    model.eval()
+    latent_vectors = []
+    labels = []
+    
+    with torch.no_grad():
+        for data, target in test_loader:
+            data = data.view(data.size(0), -1).to(device)
+            output = model.latent_space_fn(data)
+            if isinstance(output, tuple):
+                latent_vectors.append(output[0].cpu().numpy())
+                labels.append(target.numpy())
+            else:
+                latent_vectors.append(output.cpu().numpy())
+                labels.append(target.numpy())
+    
+    latent_vectors = np.concatenate(latent_vectors, axis=0)
+    labels = np.concatenate(labels, axis=0)
+    
+    tsne = TSNE(n_components=2)
+    latent_2d = tsne.fit_transform(latent_vectors)
+    
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(latent_2d[:, 0], latent_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
+    plt.colorbar(scatter)
+    plt.title("Latent Space Visualization using t-SNE")
     plt.show()

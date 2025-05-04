@@ -9,7 +9,6 @@ import argparse
 import os
 import random
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 import torch.cuda
@@ -47,6 +46,7 @@ model_cstr_args = {
         "input_dim": 32 * 32 * 3,
         "hidden_dim": 1024,
         "loss_fn": vae.VAE.vae_loss,
+        "latent_viz_fn": vae.VAE.encoder
     },
     "Convolutional VAE": {
         "device": device,
@@ -54,6 +54,7 @@ model_cstr_args = {
         "input_dim": 32 * 32 * 3,
         "input_channels": 3,
         "loss_fn": cvae.CVAE.vae_loss,
+        "latent_viz_fn": cvae.CVAE.encode
     },
     "VTAE": {
         "input_shape": (3, 32, 32),
@@ -61,6 +62,7 @@ model_cstr_args = {
         "outputdensity": "gaussian",
         "ST_type": "affine",
         "loss_fn": vtae.VTAE.vtae_loss,
+        "latent_viz_fn": None # VTAE loss is unstable, leave blank for now and prioritize other models
     },
     "VQ-VAE": {
         "in_channels": 3,
@@ -68,7 +70,8 @@ model_cstr_args = {
         "embedding_dim": 64,
         "num_embeddings": latent_dim,
         "commitment_cost": 0.25,
-        "loss_fn": vq_vae.VQVAE.vqvae_loss
+        "loss_fn": vq_vae.VQVAE.vqvae_loss,
+        "latent_viz_fn": vq_vae.VQVAE.encode
     },
     "VQ-VAE-2": {
         "in_channel": 3,
@@ -79,6 +82,7 @@ model_cstr_args = {
         "n_embed": 512,  # Number of embeddings
         "decay": 0.8,
         "loss_fn": vq_vae_2.VQVAE2.vq_vae2_loss,
+        "latent_viz_fn": vq_vae_2.VQVAE2.encoding_indices
     },
     "VQ-VTAE": {
         "in_channels": 3,
@@ -86,7 +90,8 @@ model_cstr_args = {
         "embedding_dim": 64,
         "num_embeddings": latent_dim,
         "commitment_cost": 0.25,
-        "loss_fn": vq_vtae.VQVTAE.vqvtae_loss
+        "loss_fn": vq_vtae.VQVTAE.vqvtae_loss,
+        "latent_viz_fn": vq_vtae.VQVTAE.encode
     },
     "VQ-VTAE-2": {
         "in_channel": 3,
@@ -97,6 +102,7 @@ model_cstr_args = {
         "n_embed": 512,  # Number of embeddings
         "decay": 0.8,
         "loss_fn": vq_vtae_2.VQVTAE2.vq_vtae2_loss,
+        "latent_viz_fn": vq_vtae_2.VQVTAE2.encoding_indices
     }
 }
 
@@ -229,6 +235,9 @@ def main():
         # TODO: Model Evaluation Step
         print(f"[Info]: Evaluating {model_name}")
         visualize_reconstructions(model, test_img, device)
+
+        # Latent space visualization
+        visualize_latent_space(model, model_cstr_args[model_name]["latent_viz_fn"], test_dl, device)
         
         # Store model for comparison
         trained_models[model_name] = model

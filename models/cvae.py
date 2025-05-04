@@ -101,7 +101,7 @@ class CVAE(nn.Module):
     
     def encode(self, x):
         mu, logvar = self.encoder(x)
-        return self.reparameterize(mu, logvar)
+        return mu, logvar
     
     def generate(self, n: int = 1):
         z = torch.randn((n, self.latent_dim)).to(self.device)
