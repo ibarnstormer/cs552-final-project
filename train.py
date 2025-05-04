@@ -80,7 +80,7 @@ def train_model(
         
         # Calculate average for each loss component
         for key in epoch_loss_components:
-            epoch_loss_components[key] /= len(dl)
+            epoch_loss_components[key] /= len(dl.dataset)
             loss_history[key].append(epoch_loss_components[key])
         
         # Ensure total loss is recorded even if not returned as a component
