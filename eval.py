@@ -9,12 +9,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchvision
+import torch.nn.functional as F
 from sklearn.manifold import TSNE
 from typing import List, Dict, Tuple, Optional, Union
 from models import vq_vae, vq_vae_2, vq_vtae_2
 from tqdm.auto import tqdm
 
-def visualize_reconstructions(model, data, device):
+def visualize_reconstructions(model, data, loss_fn, args, device):
     model.eval()  # Set the model to evaluation mode
     with torch.no_grad():
         
@@ -28,6 +29,8 @@ def visualize_reconstructions(model, data, device):
         
         # Pass data through the model:
         output = model(data)
+        loss = F.mse_loss(output[0], data)
+        _, loss_components = loss_fn(output, data, args, get_components=True)
         if isinstance(output, tuple):
             recon_batch = output[0]
         else:
@@ -36,6 +39,11 @@ def visualize_reconstructions(model, data, device):
         # Reshape both original and reconstructed data back to images
         data = data.view(-1, 3, 32, 32).cpu()
         recon_batch = recon_batch.view(-1, 3, 32, 32).cpu()
+
+        # Print losses
+        print("[Info]: Reconstruction Loss (MSE): {:.16f}".format(loss.item() / data.shape[0]))
+        for k, v in loss_components.items():
+            print("[Info]: {}: {:.16f}".format(k, v / data.shape[0]))
 
         n = 8  # Number of images to visualize
         plt.figure(figsize=(16, 4))
