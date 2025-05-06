@@ -101,7 +101,7 @@ class CVAE(nn.Module):
     
     def encode(self, x):
         mu, logvar = self.encoder(x)
-        return self.reparameterize(mu, logvar)
+        return mu, logvar
     
     def generate(self, n: int = 1):
         z = torch.randn((n, self.latent_dim)).to(self.device)
@@ -113,7 +113,6 @@ class CVAE(nn.Module):
         """
         KL-Divergence loss with BCE
 
-        output is a tuple of the following: (reconstructed x, mu/mean, log variance)
         """
         b = 0.25
         x_recon, mu, logvar = output

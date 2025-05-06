@@ -1,11 +1,17 @@
 """
-VQ-VAE-2
+VQ-VTAE-2
+
+VQ-VAE-2 modified with CBAM
 
 """
 
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+
+from models.vq_vtae import CBAM
+
+# Original VQ-VAE-2 copyright:
 
 # Copyright 2018 The Sonnet Authors. All Rights Reserved.
 #
@@ -108,16 +114,19 @@ class Encoder(nn.Module):
             blocks = [
                 nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1),
                 nn.ReLU(inplace=True),
+                CBAM(channel // 2),
                 nn.Conv2d(channel // 2, channel, 4, stride=2, padding=1),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel, channel, 3, padding=1),
+                CBAM(channel),
+                nn.Conv2d(channel, channel, 3, padding=1)
             ]
 
         elif stride == 2:
             blocks = [
                 nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1),
+                CBAM(channel // 2),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel // 2, channel, 3, padding=1),
+                nn.Conv2d(channel // 2, channel, 3, padding=1)
             ]
 
         for i in range(n_res_block):
@@ -139,6 +148,8 @@ class Decoder(nn.Module):
 
         blocks = [nn.Conv2d(in_channel, channel, 3, padding=1)]
 
+        blocks.append(CBAM(in_channels=channel, transpose=True),)
+
         for i in range(n_res_block):
             blocks.append(ResBlock(channel, n_res_channel))  # type: ignore
 
@@ -149,6 +160,7 @@ class Decoder(nn.Module):
                 [
                     nn.ConvTranspose2d(channel, channel // 2, 4, stride=2, padding=1),
                     nn.ReLU(inplace=True),
+                    CBAM(in_channels=channel // 2, transpose=True),
                     nn.ConvTranspose2d(
                         channel // 2, out_channel, 4, stride=2, padding=1
                     ),
@@ -166,7 +178,7 @@ class Decoder(nn.Module):
         return self.blocks(input)
 
 
-class VQVAE2(nn.Module):
+class VQVTAE2(nn.Module):
     def __init__(
         self,
         **kwargs,
@@ -207,7 +219,7 @@ class VQVAE2(nn.Module):
         dec = self.decode(quant_t, quant_b)
 
         return dec, diff
-
+    
     def encoding_indices(self, input):
         _, _, _, id_t, id_b = self.encode(input)
         return id_b.view(id_b.shape[0], -1), id_t.view(id_t.shape[0], -1)
@@ -250,7 +262,7 @@ class VQVAE2(nn.Module):
         return dec
 
     @staticmethod
-    def vq_vae2_loss(output, x, args, get_components=False):
+    def vq_vtae2_loss(output, x, args):
         # Taken from https://github.com/rosinality/vq-vae-2-pytorch/blob/master/train_vqvae.py
         out, latent_loss = output
         criterion = nn.MSELoss()
@@ -258,22 +270,5 @@ class VQVAE2(nn.Module):
 
         recon_loss = criterion(out, x)
         latent_loss = latent_loss.mean()
-        total_loss = recon_loss + latent_loss_weight * latent_loss
-        
-        if get_components:
-            return total_loss, {
-                'reconstruction_loss': recon_loss.item(),
-                'latent_loss': (latent_loss_weight * latent_loss).item()
-            }
-        else:
-            return total_loss
-
-
-if __name__ == "__main__":
-    input_shape = (3, 32, 32)
-    latent_dim = 10
-
-    model = VQVAE2(in_channel=input_shape[0], embed_dim=latent_dim)
-    x = torch.randn(8, *input_shape)
-    dec, diff = model(x)
-    print(dec.shape, diff.shape)
+        loss = recon_loss + latent_loss_weight * latent_loss
+        return loss

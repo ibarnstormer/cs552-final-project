@@ -1,7 +1,7 @@
 """
 Baseline VQ-VAE
 
-Implementation by Gemini/Google
+Parts of the implementation were made using Gemini/Google
 
 """
 
@@ -94,7 +94,7 @@ class VQVAE(nn.Module):
     def encode(self, x):
       z = self.encoder(x)
       _, _, _, encoding_indices = self.vq_layer(z)
-      return encoding_indices
+      return encoding_indices.T
 
     def decode(self, z_q):
       x_recon = self.decoder(z_q)
