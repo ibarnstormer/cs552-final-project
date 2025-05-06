@@ -262,7 +262,7 @@ class VQVTAE2(nn.Module):
         return dec
 
     @staticmethod
-    def vq_vtae2_loss(output, x, args):
+    def vq_vtae2_loss(output, x, args, get_components=False):
         # Taken from https://github.com/rosinality/vq-vae-2-pytorch/blob/master/train_vqvae.py
         out, latent_loss = output
         criterion = nn.MSELoss()
@@ -271,4 +271,11 @@ class VQVTAE2(nn.Module):
         recon_loss = criterion(out, x)
         latent_loss = latent_loss.mean()
         loss = recon_loss + latent_loss_weight * latent_loss
-        return loss
+        
+        if get_components:
+            return loss, {
+                'reconstruction_loss': recon_loss.item(),
+                'latent_loss': (latent_loss_weight * latent_loss).item()
+            }
+        else:
+            return loss
