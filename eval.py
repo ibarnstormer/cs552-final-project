@@ -11,7 +11,7 @@ import torch
 import torchvision
 from sklearn.manifold import TSNE
 from typing import List, Dict, Tuple, Optional, Union
-from models import vq_vae
+from models import vq_vae, vq_vae_2, vq_vtae_2
 from tqdm.auto import tqdm
 
 def visualize_reconstructions(model, data, device):
@@ -151,28 +151,57 @@ def visualize_latent_space(model, model_name: str, latent_space_fn, test_loader,
     print(f"[Info]: Visualizing latent space for {model_name}:")
 
     model.eval()
-    latent_vectors = []
+    if isinstance(model, vq_vae_2.VQVAE2) or isinstance(model, vq_vtae_2.VQVTAE2):
+        latent_vectors = ([], []) # id_b, id_t
+    else:
+        latent_vectors = []
     labels = []
     
     with torch.no_grad():
         for data, target in tqdm(test_loader):
             data = data.to(device)
             output = latent_space_fn(model, data)
-            if isinstance(output, tuple):
+            if isinstance(model, vq_vae_2.VQVAE2) or isinstance(model, vq_vtae_2.VQVTAE2):
+                latent_vectors[0].append(output[0].cpu().numpy())
+                latent_vectors[1].append(output[1].cpu().numpy())
+                labels.append(target.numpy())
+            elif isinstance(output, tuple):
                 latent_vectors.append(output[0].cpu().numpy())
                 labels.append(target.numpy())
             else:
                 latent_vectors.append(output.cpu().numpy())
                 labels.append(target.numpy())
     
-    latent_vectors = np.concatenate(latent_vectors, axis=0)
-    labels = np.concatenate(labels, axis=0)
+    if isinstance(model, vq_vae_2.VQVAE2) or isinstance(model, vq_vtae_2.VQVTAE2):
+        latent_b_vectors = np.concatenate(latent_vectors[0], axis=0)
+        latent_t_vectors = np.concatenate(latent_vectors[1], axis=0)
+        labels = np.concatenate(labels, axis=0)
+        
+        tsne = TSNE(n_components=2)
+        latent_b_2d = tsne.fit_transform(latent_b_vectors)
+        latent_t_2d = tsne.fit_transform(latent_t_vectors)
+        
+        plt.figure(figsize=(8, 6))
+        scatter = plt.scatter(latent_b_2d[:, 0], latent_b_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
+        plt.colorbar(scatter)
+        plt.title(f"Latent Space Visualization of bottom codebook for {model_name} using t-SNE")
+        plt.show()
+
+        plt.figure(figsize=(8, 6))
+        scatter = plt.scatter(latent_t_2d[:, 0], latent_t_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
+        plt.colorbar(scatter)
+        plt.title(f"Latent Space Visualization of top codebook for {model_name} using t-SNE")
+        plt.show()
     
-    tsne = TSNE(n_components=2)
-    latent_2d = tsne.fit_transform(latent_vectors)
-    
-    plt.figure(figsize=(8, 6))
-    scatter = plt.scatter(latent_2d[:, 0], latent_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
-    plt.colorbar(scatter)
-    plt.title(f"Latent Space Visualization for {model_name} using t-SNE")
-    plt.show()
+    else:
+        latent_vectors = np.concatenate(latent_vectors, axis=0)
+        labels = np.concatenate(labels, axis=0)
+        
+        tsne = TSNE(n_components=2)
+        latent_2d = tsne.fit_transform(latent_vectors)
+        
+        plt.figure(figsize=(8, 6))
+        scatter = plt.scatter(latent_2d[:, 0], latent_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
+        plt.colorbar(scatter)
+        plt.title(f"Latent Space Visualization for {model_name} using t-SNE")
+        plt.show()
