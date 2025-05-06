@@ -109,17 +109,30 @@ class VQVAE(nn.Module):
       return x_recon
     
     @staticmethod
-    def vqvae_loss(output, x, args):
-        
+    def vqvae_loss(output, x, args, get_components=False):
         b = 0.25
 
         x_recon = output[0]
         commit_loss = output[1]
+        
+        # Some VQ-VAE implementations also return perplexity
+        perplexity = output[2] if len(output) > 2 else None
 
         criterion = nn.MSELoss()
 
-        recon_loss = criterion(x_recon, x) # TODO: split
-        loss = recon_loss + b * commit_loss
+        recon_loss = criterion(x_recon, x)
+        total_loss = recon_loss + b * commit_loss
         
-        return loss
+        if get_components:
+            components = {
+                'reconstruction_loss': recon_loss.item(),
+                'commitment_loss': commit_loss.item()
+            }
+            
+            if perplexity is not None:
+                components['perplexity'] = perplexity.item() if isinstance(perplexity, torch.Tensor) else perplexity
+                
+            return total_loss, components
+        else:
+            return total_loss
     

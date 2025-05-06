@@ -109,7 +109,7 @@ class CVAE(nn.Module):
         return x_recon
     
     @staticmethod
-    def vae_loss(output, x, args):
+    def vae_loss(output, x, args, get_components=False):
         """
         KL-Divergence loss with BCE
 
@@ -117,6 +117,14 @@ class CVAE(nn.Module):
         b = 0.25
         x_recon, mu, logvar = output
 
-        loss = nn.functional.binary_cross_entropy(x_recon, x, reduction="sum") # TODO: split
+        recon_loss = nn.functional.binary_cross_entropy(x_recon, x, reduction="sum")
         kl_divergence = -b * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return loss + kl_divergence
+        total_loss = recon_loss + kl_divergence
+        
+        if get_components:
+            return total_loss, {
+                'reconstruction_loss': recon_loss.item(),
+                'kl_divergence': kl_divergence.item()
+            }
+        else:
+            return total_loss
