@@ -243,7 +243,7 @@ def main():
 
         # Model Evaluation
         print(f"[Info]: Evaluating {model_name}")
-        visualize_reconstructions(model, test_img, device)
+        visualize_reconstructions(model, test_img, model_cstr_args[model_name]["loss_fn"], model_cstr_args[model_name], device)
 
         # Latent space visualization
         sub_dl = DataLoader(Subset(test_ds, torch.randperm(len(test_ds))[:5000]), batch_size=1, shuffle=True)
