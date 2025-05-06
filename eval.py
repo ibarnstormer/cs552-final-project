@@ -131,8 +131,8 @@ def compare_model_reconstructions(models_dict: Dict[str, torch.nn.Module],
         ax = plt.subplot(num_rows, num_samples, i + 1)
         plt.imshow(original_images[i].cpu().permute(1, 2, 0).numpy())
         ax.axis('off')
-        if i == 0:
-            ax.set_title("Original")
+        # if i == 0:
+        #     ax.set_title("Original")
     
     # Plot reconstructions for each model
     for row_idx, (model_name, recon_batch) in enumerate(reconstructions.items(), start=1):
@@ -140,8 +140,8 @@ def compare_model_reconstructions(models_dict: Dict[str, torch.nn.Module],
             ax = plt.subplot(num_rows, num_samples, row_idx * num_samples + i + 1)
             plt.imshow(recon_batch[i].permute(1, 2, 0).numpy())
             ax.axis('off')
-            if i == 0:
-                ax.set_title(model_name)
+            # if i == 0:
+            #     ax.set_title(model_name)
     
     plt.tight_layout()
     plt.show()

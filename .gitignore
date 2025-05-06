@@ -1,7 +1,8 @@
 .venv
 
 __pycache__/
-loss_plots/
+loss_plots/*.png
+loss_plots/*.npy
 data/
 trained_model_weights/
 trained_model_weights2/
