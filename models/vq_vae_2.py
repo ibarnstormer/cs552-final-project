@@ -1,6 +1,8 @@
 """
 VQ-VAE-2
 
+Initial implementation taken from https://github.com/rosinality/vq-vae-2-pytorch/blob/master/vqvae.py
+
 """
 
 import torch

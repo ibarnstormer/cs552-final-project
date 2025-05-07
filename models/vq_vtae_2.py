@@ -3,6 +3,8 @@ VQ-VTAE-2
 
 VQ-VAE-2 modified with CBAM
 
+Initial VQ-VAE-2 implementation taken from https://github.com/rosinality/vq-vae-2-pytorch/blob/master/vqvae.py
+
 """
 
 import torch
